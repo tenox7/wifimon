@@ -68,7 +68,7 @@ struct ContentView: View {
             )
         }
         .padding(12)
-        .frame(minWidth: 280, idealWidth: 600, minHeight: 320, idealHeight: 720)
+        .frame(minWidth: 280, idealWidth: 450, minHeight: 320, idealHeight: 640)
         .navigationTitle(monitor.ssid.isEmpty ? "WifiMon" : "WifiMon — \(monitor.ssid)")
         .onAppear {
             location.request()
