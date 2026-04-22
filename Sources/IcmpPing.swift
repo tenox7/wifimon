@@ -102,6 +102,8 @@ final class IcmpPinger: @unchecked Sendable {
                 return nil
             }
 
+            if from.sin_addr.s_addr != dst.sin_addr.s_addr { continue }
+
             var off = 0
             if n > 0 && (recvBuf[0] >> 4) == 4 {
                 off = Int(recvBuf[0] & 0x0f) * 4

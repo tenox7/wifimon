@@ -160,8 +160,9 @@ final class NetworkMonitor: ObservableObject {
         case .mode11n: return "802.11n"
         case .mode11ac: return "802.11ac"
         case .mode11ax: return "802.11ax"
-        case .mode11be: return "802.11be"
-        @unknown default: return ""
+        @unknown default:
+            if mode.rawValue == 7 { return "802.11be" }
+            return ""
         }
     }
 
