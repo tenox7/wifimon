@@ -13,7 +13,7 @@ final class LocationPermission: NSObject, ObservableObject, CLLocationManagerDel
 
     func request() {
         if status == .notDetermined {
-            manager.requestAlwaysAuthorization()
+            manager.requestWhenInUseAuthorization()
         }
     }
 

@@ -23,8 +23,7 @@ final class IcmpPinger: @unchecked Sendable {
         guard rc == 0, let ai = res else { return nil }
         defer { freeaddrinfo(ai) }
 
-        var fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP)
-        if fd < 0 { fd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP) }
+        let fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP)
         guard fd >= 0 else { return nil }
 
         guard let aiAddr = ai.pointee.ai_addr else {
