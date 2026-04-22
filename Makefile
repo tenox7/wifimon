@@ -1,3 +1,5 @@
+-include .env
+
 APP_NAME := WifiMon
 BUILD_DIR := build
 APP_DIR := $(BUILD_DIR)/$(APP_NAME).app
@@ -7,11 +9,12 @@ RES_DIR := $(APP_DIR)/Contents/Resources
 BINARY := $(MACOS_DIR)/$(APP_NAME)
 ICON := $(BUILD_DIR)/AppIcon.icns
 SIGNATURE := $(APP_DIR)/Contents/_CodeSignature/CodeResources
+STAGING := $(BUILD_DIR)/dmg_staging
 
 ARCH := $(shell uname -m)
 SOURCES := $(wildcard Sources/*.swift)
 
-.PHONY: app dmg clean
+.PHONY: app dmg release clean
 
 app: $(SIGNATURE)
 	@echo "Run with: open $(APP_DIR)"
@@ -19,7 +22,7 @@ app: $(SIGNATURE)
 dmg: $(DMG_PATH)
 
 $(SIGNATURE): $(BINARY) $(RES_DIR)/AppIcon.icns $(APP_DIR)/Contents/Info.plist
-	codesign --force --deep --sign - $(APP_DIR)
+	codesign --force --sign - $(APP_DIR)
 	@echo "Built $(APP_DIR)"
 
 $(BINARY): $(SOURCES) | $(MACOS_DIR)
@@ -42,19 +45,28 @@ $(APP_DIR)/Contents/Info.plist: Info.plist | $(APP_DIR)/Contents
 $(BUILD_DIR) $(APP_DIR)/Contents $(MACOS_DIR) $(RES_DIR):
 	mkdir -p $@
 
+define build_dmg
+	rm -rf $(STAGING) $(1)
+	mkdir -p $(STAGING)
+	cp -R $(APP_DIR) $(STAGING)/
+	ln -s /Applications $(STAGING)/Applications
+	hdiutil create -volname $(APP_NAME) -srcfolder $(STAGING) -ov -format UDZO $(1) > /dev/null
+	rm -rf $(STAGING)
+endef
+
 $(DMG_PATH): $(SIGNATURE)
-	rm -rf $(BUILD_DIR)/dmg_staging $@
-	mkdir -p $(BUILD_DIR)/dmg_staging
-	cp -R $(APP_DIR) $(BUILD_DIR)/dmg_staging/
-	ln -s /Applications $(BUILD_DIR)/dmg_staging/Applications
-	hdiutil create \
-		-volname $(APP_NAME) \
-		-srcfolder $(BUILD_DIR)/dmg_staging \
-		-ov \
-		-format UDZO \
-		$@ > /dev/null
-	rm -rf $(BUILD_DIR)/dmg_staging
+	$(call build_dmg,$@)
 	@echo "Built $@"
+
+release: $(BINARY) $(RES_DIR)/AppIcon.icns $(APP_DIR)/Contents/Info.plist
+	@test -n "$(DEV_ID)" || { echo "DEV_ID not set — copy .env.example to .env and fill in"; exit 1; }
+	@test -n "$(NOTARY_PROFILE)" || { echo "NOTARY_PROFILE not set — copy .env.example to .env and fill in"; exit 1; }
+	codesign --force --options runtime --timestamp --sign "$(DEV_ID)" $(APP_DIR)
+	$(call build_dmg,$(DMG_PATH))
+	codesign --force --timestamp --sign "$(DEV_ID)" $(DMG_PATH)
+	xcrun notarytool submit $(DMG_PATH) --keychain-profile "$(NOTARY_PROFILE)" --wait
+	xcrun stapler staple $(DMG_PATH)
+	@echo "Signed + notarized: $(DMG_PATH)"
 
 clean:
 	rm -rf $(BUILD_DIR)
