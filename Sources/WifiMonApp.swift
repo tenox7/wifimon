@@ -6,6 +6,7 @@ struct WifiMonApp: App {
         WindowGroup("WifiMon") {
             ContentView()
         }
+        .defaultSize(width: 450, height: 650)
         .windowResizability(.contentSize)
     }
 }
